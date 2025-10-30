@@ -1,0 +1,121 @@
+---
+title: "Mapping Chinese exports within the BRICS in from 2013 to 2024"
+author: "Vinicius Paulinelli"
+date: "2025-10-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This project explores China's commercial relations with other members of the BRICS.
+
+The data set is from UNCOMTRADE and focuses on Chinese exports from 2013 to 2024, when the group was expanded to include Ethiopia, Iran, Egypt and the UAE. Indonesia became a full member in early 2025.
+
+The main hypothesis are:
+1. Intra-bloc trade has been increasing due to political proximity;
+2. An increase in exports might be an early indicator of membership. In other words, we expect China to increase its exports to other countries in the years preceding their entry.
+
+```` {r setting wd and csv files, echo = FALSE, include = FALSE}
+
+library(ggplot2)
+library(tidyverse)
+library(readr)
+setwd('C:/Users/Vinicius/Desktop/Pessoal/Data Projects/BRICS trade')
+TradeData_10_30_2025_11_17_21 <- read_csv("TradeData_10_30_2025_11_17_21.csv")
+
+````
+
+## Getting and Transforming Data
+
+One can download the file directly from UNCOMTRADE's platform with the desired parameters (country of focus, destinations, time period and etc). I just needed to filter the raw data to contain only the relevant parts and changed some names for clarity.
+
+Since the amount was in total USD, I rounded up the unities to billions to facilitate calculations.
+
+```{r getting data}
+#loading and transforming the dataset
+trade_data_2 <- select(TradeData_10_30_2025_11_17_21, 
+                       refYear, 
+                       partnerDesc,
+                       primaryValue) %>%
+  rename('Year' = refYear,
+         'Country' = partnerDesc,
+         'Total'= primaryValue)
+
+#converting to billions of USD
+trade_data_round_2 <- mutate(trade_data_2, Total = round(Total / 1000000000, 3))
+head(trade_data_round_2)
+
+```
+
+## Exploring the Data
+
+### What was the temporal behavior of exports?
+
+Trade remained stable until 2020 but has been increasing ever since, even beyond pre-pandemic levels. So we have a positive evidence for our first hypothesis.
+
+```{r total exports, echo=TRUE}
+total_yearly_trade <- trade_data_round_2 %>%
+  group_by(Year) %>%
+  summarise(total_year = sum(Total))
+
+ggplot(total_yearly_trade, aes(as.factor(Year), total_year)) + 
+  geom_col(fill = 'steelblue', colour = 'black') +
+  labs(title = 'Total Chinese Exports from 2013 to 2024',
+       x = 'Year',
+       y = 'Total trade (in billions of USD)')
+```
+
+### How are the exports divided?
+
+We can also get a glimpse of which countries were China's most valuable in the bloc, if we vizualize how exports are divided.
+
+
+```{r country percentage, echo=TRUE}
+#Getting the total value by Country
+total_trade_country <- trade_data_round_2 %>% 
+  group_by(Country) %>%
+  summarise(total_country = sum(Total))
+
+
+ggplot(total_trade_country, aes(total_country, Country)) + 
+  geom_col(fill = 'steelblue', colour = 'black') + 
+  labs(title = 'Total value of exports by Country (2013-2024)',
+       x = 'Total (in billions of USD)',
+       y = 'Country')
+
+```
+
+Looks like India, Russia and Indonesia were the top three - USD 958.548 bn, USD 735.944 bn, and USD 580.048 bn, respectively..
+
+It would be interesting to break down these results by type of good and service in the future. I would assume they differ a lot.
+
+### How were the new members included?
+
+And finally we can wrap it all together and analyze exports over time focusing only on thr new members added in 2024-25
+
+```{r new members, echo=TRUE}
+#Mapping trade with the newest members
+total_new_members <- trade_data_round_2  %>%
+  filter(Country %in% c('Egypt','Ethiopia','Iran','Indonesia','United Arab Emirates'))
+
+ggplot(total_new_members, aes(as.factor(Year), Total, fill = Country)) + 
+  geom_col(position = 'dodge', colour = 'black') +
+  theme(legend.position = 'bottom') + 
+  labs(title = 'Total trade value by country (2013-2024)',
+       x = 'Year',
+       y = 'Total (in billions of USD)')
+```
+
+The most interesting trends to observe:
+
+1. For Indonesia and the UAE, exports were already increasing in the years prior to their adhesion. This might indicate that China's support for their adhesion was linked to securing a relevant consumer market.
+
+2. The same is not true for Egypt, Ethiopia and Iran. Their adhesion might have been more due to political and/or geopolitical considerations than pure economic reasons.
+
+The conclusion is two-fold: From China's perspective, the new BRICS is about a mix of commercial and political advantages to its standing in global affairs. 
+
+
